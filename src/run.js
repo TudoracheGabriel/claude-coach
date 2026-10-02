@@ -3,9 +3,11 @@ import { DEFAULTS } from './defaults.js';
 import { loadState, saveState, collectGarbage } from './state.js';
 import { rank } from './rank.js';
 import { ctxPressure } from './detectors/ctx-pressure.js';
+import { cacheExpiry } from './detectors/cache-expiry.js';
+import { rateLimit } from './detectors/rate-limit.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
-const DETECTORS = [ctxPressure];
+const DETECTORS = [ctxPressure, cacheExpiry, rateLimit];
 
 function parse(stdinText) {
   try {

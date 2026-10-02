@@ -12,3 +12,12 @@ export function duration(ms) {
   const h = Math.floor(m / 60);
   return m % 60 ? `${h}h${String(m % 60).padStart(2, '0')}m` : `${h}h`;
 }
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Local wall-clock time; adds the weekday when it is not within the next 24 hours.
+export function clock(at, now) {
+  const d = new Date(at);
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return at - now < 24 * 3600_000 ? hm : `${DAYS[d.getDay()]} ${hm}`;
+}
