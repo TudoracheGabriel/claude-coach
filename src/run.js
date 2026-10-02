@@ -1,13 +1,15 @@
 import { normalize } from './normalize.js';
 import { DEFAULTS } from './defaults.js';
 import { loadState, saveState, collectGarbage } from './state.js';
+import { readTranscript, promptRecord } from './transcript.js';
 import { rank } from './rank.js';
 import { ctxPressure } from './detectors/ctx-pressure.js';
+import { ctxSpike } from './detectors/ctx-spike.js';
 import { cacheExpiry } from './detectors/cache-expiry.js';
 import { rateLimit } from './detectors/rate-limit.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
-const DETECTORS = [ctxPressure, cacheExpiry, rateLimit];
+const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit];
 
 function parse(stdinText) {
   try {
@@ -15,6 +17,14 @@ function parse(stdinText) {
     return input && typeof input === 'object' && !Array.isArray(input) ? input : null;
   } catch {
     return null;
+  }
+}
+
+function safeReadTranscript(path, previous) {
+  try {
+    return readTranscript(path, previous);
+  } catch {
+    return readTranscript(null, null);
   }
 }
 
@@ -27,7 +37,13 @@ export async function run(stdinText, env) {
   const snap = normalize(input);
   const config = DEFAULTS;
   const state = loadState(home, snap.sessionId);
-  const ctx = { snap, now, home, state };
+
+  const transcript = safeReadTranscript(snap.transcriptPath, state.transcript);
+  const promptId = snap.promptId ?? transcript.current;
+  if (promptId && snap.tokens !== null) promptRecord(transcript, promptId).end = snap.tokens;
+  state.transcript = transcript;
+
+  const ctx = { snap, now, home, state, transcript };
   const advice = rank(DETECTORS, ctx, state, config);
   try {
     collectGarbage(home, snap.sessionId, state, now);
