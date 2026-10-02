@@ -1,0 +1,32 @@
+{
+  "name": "claude-coach",
+  "version": "0.1.0",
+  "description": "A Claude Code status line that tells you what to do next.",
+  "type": "module",
+  "bin": {
+    "claude-coach": "bin/claude-coach.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc -p ."
+  },
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "status-line"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "typescript": "^5.9.3"
+  }
+}
