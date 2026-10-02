@@ -1,5 +1,5 @@
 import { normalize } from './normalize.js';
-import { DEFAULTS } from './defaults.js';
+import { loadConfig } from './config.js';
 import { loadState, saveState, collectGarbage } from './state.js';
 import { readTranscript, promptRecord } from './transcript.js';
 import { rank } from './rank.js';
@@ -37,7 +37,7 @@ export async function run(stdinText, env) {
   const input = parse(stdinText);
   if (!input) return FALLBACK;
   const snap = normalize(input);
-  const config = DEFAULTS;
+  const config = loadConfig(home);
   const state = loadState(home, snap.sessionId);
 
   const transcript = safeReadTranscript(snap.transcriptPath, state.transcript);
