@@ -9,9 +9,11 @@ import { cacheExpiry } from './detectors/cache-expiry.js';
 import { rateLimit } from './detectors/rate-limit.js';
 import { readHeavy } from './detectors/read-heavy.js';
 import { drift } from './detectors/drift.js';
+import { uncommitted } from './detectors/uncommitted.js';
+import { gitDirty } from './git.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
-const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift];
+const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift, uncommitted];
 
 function parse(stdinText) {
   try {
@@ -45,7 +47,11 @@ export async function run(stdinText, env) {
   if (promptId && snap.tokens !== null) promptRecord(transcript, promptId).end = snap.tokens;
   state.transcript = transcript;
 
-  const ctx = { snap, now, home, state, transcript };
+  const commitOpts = config.detectors.uncommitted;
+  const wantGit = commitOpts.enabled && snap.tokens !== null && snap.tokens >= commitOpts.minTokens;
+  const git = { dirty: wantGit ? await gitDirty(state, snap.cwd, now, config.git) : null };
+
+  const ctx = { snap, now, home, state, transcript, git };
   const advice = rank(DETECTORS, ctx, state, config);
   try {
     collectGarbage(home, snap.sessionId, state, now);
