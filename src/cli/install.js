@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { coachDir } from '../state.js';
+import { loadConfig } from '../config.js';
 
 const PACKAGE_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const REFRESH_SECONDS = 15;
@@ -80,7 +81,13 @@ export function install(home) {
 
   const lines = [`claude-coach installed. Status line: ${statusLine.command}`];
   if (!previous && settings.exists) lines.push(`Settings backup: ${backupPath(home)}`);
-  if (prior?.command) lines.push(`Your previous status line (${prior.command}) is kept and shown above the advice.`);
+  if (prior?.command) {
+    lines.push(
+      loadConfig(home).wrap.enabled
+        ? `Your previous status line (${prior.command}) is kept and shown above the advice.`
+        : `Your previous status line (${prior.command}) is hidden (wrap.enabled is false in config); uninstall restores it.`,
+    );
+  }
   if (previous) lines.push('Already installed: refreshed the app files, kept the original backup.');
   return { code: 0, output: lines.join('\n') };
 }
