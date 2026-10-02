@@ -9,4 +9,5 @@ export const DEFAULTS = {
     'read-heavy': { enabled: true, enterCalls: 15, exitCalls: 12, turns: 5, minReadShare: 0.6, minTokens: 40_000, cooldownMin: 15 },
   },
   git: { timeoutMs: 300, cacheSeconds: 5 },
+  wrap: { timeoutMs: 150 },
 };

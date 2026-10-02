@@ -51,7 +51,9 @@ function copyApp(home) {
   return script;
 }
 
-const isOurs = (statusLine) => typeof statusLine?.command === 'string' && statusLine.command.includes('claude-coach');
+// Our own command, as written by install or run through npx: never wrap the coach inside itself.
+const OUR_COMMAND = /(?:[\\/]bin[\\/]claude-coach\.js"?|(?:^|\s)(?:npx\s+(?:-y\s+)?)?claude-coach)\s*$/;
+const isOurs = (statusLine) => typeof statusLine?.command === 'string' && OUR_COMMAND.test(statusLine.command.trim());
 
 export function install(home) {
   let settings;

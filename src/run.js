@@ -11,6 +11,8 @@ import { readHeavy } from './detectors/read-heavy.js';
 import { drift } from './detectors/drift.js';
 import { uncommitted } from './detectors/uncommitted.js';
 import { gitDirty } from './git.js';
+import { wrapped } from './wrap.js';
+import { readInstall } from './cli/install.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
 const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift, uncommitted];
@@ -41,6 +43,10 @@ export async function run(stdinText, env) {
   const snap = normalize(input);
   const config = loadConfig(home);
   const state = loadState(home, snap.sessionId);
+  const previousCommand = readInstall(home)?.previousStatusLine?.command;
+  const above = typeof previousCommand === 'string' && previousCommand
+    ? wrapped(previousCommand, stdinText, { home, sessionId: snap.sessionId, timeoutMs: config.wrap.timeoutMs }).catch(() => null)
+    : Promise.resolve(null);
 
   const transcript = safeReadTranscript(snap.transcriptPath, state.transcript);
   const promptId = snap.promptId ?? transcript.current;
@@ -57,5 +63,7 @@ export async function run(stdinText, env) {
     collectGarbage(home, snap.sessionId, state, now);
     saveState(home, snap.sessionId, state);
   } catch {}
-  return advice ? renderAdvice(advice, snap, { now, columns }) : renderHealthy(snap, columns);
+  const coachText = advice ? renderAdvice(advice, snap, { now, columns }) : renderHealthy(snap, columns);
+  const previous = await above;
+  return previous ? `${previous}\n${coachText}` : coachText;
 }
