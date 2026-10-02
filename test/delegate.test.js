@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { coach, stdin, strip, lines, tempHome } from './helpers.js';
 import { prompt, assistant, toolResult, writeTranscript } from './transcript.js';
 
-// One prompt per element; each prompt makes the given tool calls in the main chain.
-function session(promptsTools, { sidechain = false } = {}) {
+// One prompt per element; each prompt makes the given tool calls in the main chain and then
+// Claude finishes its turn, unless `midTurn` leaves the last prompt still being worked on.
+function session(promptsTools, { sidechain = false, midTurn = false } = {}) {
   const entries = [];
   let tokens = 40_000;
   promptsTools.forEach((tools, i) => {
@@ -13,9 +14,28 @@ function session(promptsTools, { sidechain = false } = {}) {
       tokens += 1500;
       entries.push(assistant(tokens, { tools: [t], sidechain }), toolResult(`p${i}`));
     }
+    if (!(midTurn && i === promptsTools.length - 1)) entries.push(assistant(tokens, { sidechain }));
   });
   return { entries, tokens };
 }
+
+test('no delegate tip while Claude is still working on the prompt', async () => {
+  const many = [read(1), read(2), grep, read(3), glob, read(4), read(5), read(6), grep, read(7), read(8), grep, read(9), glob, read(10)];
+  const { entries, tokens } = session([many], { midTurn: true });
+  const out = await runWith(entries, tokens);
+  assert.doesNotMatch(out, /subagent/i);
+});
+
+test('once the turn ends the delegate advice is a calm tip about next time', async () => {
+  const many = [read(1), read(2), grep, read(3), glob, read(4), read(5), read(6), grep, read(7), read(8), grep, read(9), glob, read(10)];
+  const { entries, tokens } = session([many]);
+  const raw = await coach(stdin({ tokens, transcriptPath: writeTranscript(tempHome(), entries), promptId: null }));
+  const advice = lines(raw)[1];
+  assert.match(advice, /^Tip: Next time, ask Claude to explore with a subagent/);
+  assert.doesNotMatch(advice, /▲/);
+  assert.match(advice, /15 file reads\/searches in your last prompt/);
+  assert.doesNotMatch(raw, /\x1b\[33m|\x1b\[31m/, 'tips are not yellow or red');
+});
 
 const read = (n) => ['Read', { file_path: `/w/src/file${n}.ts` }];
 const grep = ['Grep', { pattern: 'TODO' }];
@@ -36,7 +56,7 @@ test('many read/search calls in recent prompts suggest delegating to a subagent'
   ]);
   const out = await runWith(entries, tokens);
   assert.match(lines(out)[1], /subagent/i);
-  assert.match(lines(out)[1], /15 read\/search calls/);
+  assert.match(lines(out)[1], /15 file reads\/searches in your last 3 prompts/);
 });
 
 test('read calls inside subagents (sidechains) are not counted', async () => {

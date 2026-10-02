@@ -3,21 +3,13 @@ import { loadConfig } from './config.js';
 import { loadState, saveState, collectGarbage } from './state.js';
 import { readTranscript, promptRecord } from './transcript.js';
 import { rank } from './rank.js';
-import { ctxPressure } from './detectors/ctx-pressure.js';
-import { ctxSpike } from './detectors/ctx-spike.js';
-import { cacheExpiry } from './detectors/cache-expiry.js';
-import { rateLimit } from './detectors/rate-limit.js';
-import { readHeavy } from './detectors/read-heavy.js';
-import { drift } from './detectors/drift.js';
-import { uncommitted } from './detectors/uncommitted.js';
+import { DETECTORS } from './detectors/index.js';
 import { gitDirty } from './git.js';
 import { wrapped } from './wrap.js';
 import { readInstall } from './cli/install.js';
 import { logAdvice } from './advice-log.js';
 import { capture } from './capture.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
-
-const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift, uncommitted];
 
 function parse(stdinText) {
   try {
@@ -45,7 +37,7 @@ export async function run(stdinText, env) {
   const snap = normalize(input);
   const config = loadConfig(home);
   const state = loadState(home, snap.sessionId);
-  const previousCommand = readInstall(home)?.previousStatusLine?.command;
+  const previousCommand = config.wrap.enabled ? readInstall(home)?.previousStatusLine?.command : null;
   const above = typeof previousCommand === 'string' && previousCommand
     ? wrapped(previousCommand, stdinText, { home, sessionId: snap.sessionId, timeoutMs: config.wrap.timeoutMs }).catch(() => null)
     : Promise.resolve(null);
@@ -60,7 +52,14 @@ export async function run(stdinText, env) {
   const git = { dirty: wantGit ? await gitDirty(state, snap.cwd, now, config.git) : null };
 
   const ctx = { snap, now, home, state, transcript, git };
-  const advice = rank(DETECTORS, ctx, state, config);
+  const { winner: advice, outcomes } = rank(DETECTORS, ctx, state, config);
+  // What `explain` shows: the inputs and each rule's outcome from this run. Numbers and ids only.
+  state.lastRunAt = now;
+  state.lastSnap = snap;
+  state.lastGitDirty = git.dirty;
+  state.lastOutcomes = Object.fromEntries(
+    Object.entries(outcomes).map(([id, o]) => [id, { status: o.status, until: o.until, urgency: o.proposal?.urgency }]),
+  );
   const shownId = advice?.id ?? null;
   if (shownId && shownId !== state.lastShown) {
     const deadline = shownId === 'cache-expiry' ? snap.cache?.expiresAt ?? null : null;

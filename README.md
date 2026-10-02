@@ -21,14 +21,16 @@ It runs locally. It makes no LLM calls and no network requests, and uses zero to
 
 Only the single most urgent recommendation is shown. Advice does not flicker near a threshold (each one has separate on and off levels). Once you act on a piece of advice, it stays quiet for a cooldown period before it can come back.
 
+Advice comes at three levels: a cyan **`Tip:`** (urgency < 50, something to do differently next time), a yellow **`▲`** warning (50–69) and a red **`▲`** (≥ 70, act now). Tips about how the work is being done (delegating, `/clear`) only appear **after Claude finishes its turn**, when it is your move.
+
 | Advice | Shown when (default) | Why | Source |
 |---|---|---|---|
 | **Run /compact** (with a focus hint from your latest task) | ≥ 150k tokens in context (absolute, so 1M windows aren't warned only at 850k), or ≥ 85% of the window. Off again below 140k. | Answer quality drops as context grows. | 150k is the default trigger of Anthropic's own [compaction at a token threshold](https://platform.claude.com/docs/en/build-with-claude/compaction-threshold). Claude Code docs: "performance degrades as it fills" ([best practices](https://code.claude.com/docs/en/best-practices)). See also [context rot](https://research.trychroma.com/context-rot) (Chroma, 18 models) and [Effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) (Anthropic). |
 | **Restate key constraints** | One prompt added ≥ 40k tokens compared with the previous prompt (measured per `prompt_id`, never per redraw) | A big load of fresh content pushes earlier instructions further back, and models use mid-context information less reliably. | [Lost in the Middle](https://arxiv.org/abs/2307.03172) (Liu et al., 2023). [Context rot](https://research.trychroma.com/context-rot). The 40k value (20% of a 200k window) is our heuristic. |
 | **Reply within Ns** | The prompt cache is warm and expires within 120 s, and the next turn would re-cache ≥ 20k tokens | After expiry, the next turn writes the whole prefix to the cache again: 1.25× (5-minute TTL) or 2× (1-hour TTL) the input price, instead of 0.1× for a cache read. | [Prompt caching](https://docs.claude.com/en/docs/build-with-claude/prompt-caching) (TTL and pricing). Claude Code [status line `prompt_cache` fields](https://code.claude.com/docs/en/statusline). |
 | **Lower /effort or use a cheaper /model** | The 5-hour or weekly limit is ≥ 80% used (off again below 75%). Shows the local reset time. | Gives you time to pace the rest of the window instead of being cut off mid-task. | Claude Code [status line `rate_limits`](https://code.claude.com/docs/en/statusline). The 80% level is a common warning point; tune it in config. |
-| **Delegate exploration to a subagent** | ≥ 15 Read/Grep/Glob calls in the main conversation over the last 5 prompts, reads are ≥ 60% of tool calls, and context is ≥ 40k | Exploration fills the main context. A subagent explores in its own window and returns only a summary. | Claude Code [best practices: use subagents for investigation](https://code.claude.com/docs/en/best-practices#use-subagents-for-investigation). Anthropic: subagents return "a condensed, distilled summary (often 1,000-2,000 tokens)" ([context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). The thresholds are our heuristic. |
-| **New task? Run /clear first** | The latest prompt's files, folders and keywords overlap the session's recent working set by < 15%, and context is ≥ 60k | Leftover context from an unrelated task reduces quality ("the kitchen sink session"). | Claude Code [best practices: avoid common failure patterns](https://code.claude.com/docs/en/best-practices#avoid-common-failure-patterns). Overlap and floor are our heuristic. |
+| **Tip: Next time, ask Claude to explore with a subagent** | After Claude finishes its turn: ≥ 15 Read/Grep/Glob calls in the main conversation over the last 5 prompts, reads are ≥ 60% of tool calls, and context is ≥ 40k | Exploration fills the main context. A subagent explores in its own window and returns only a summary. | Claude Code [best practices: use subagents for investigation](https://code.claude.com/docs/en/best-practices#use-subagents-for-investigation). Anthropic: subagents return "a condensed, distilled summary (often 1,000-2,000 tokens)" ([context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)). The thresholds are our heuristic. |
+| **New task? Run /clear first** | After Claude finishes its turn: the latest prompt's files, folders and keywords overlap the session's recent working set by < 15%, and context is ≥ 60k | Leftover context from an unrelated task reduces quality ("the kitchen sink session"). | Claude Code [best practices: avoid common failure patterns](https://code.claude.com/docs/en/best-practices#avoid-common-failure-patterns). Overlap and floor are our heuristic. |
 | **Commit first** | ≥ 10 uncommitted files and context ≥ 100k (git checked at most every 5 s, 300 ms timeout) | A commit is a safe point before the next big change. Claude Code checkpoints don't cover Bash changes and are "not a replacement for version control". | Claude Code [checkpointing](https://code.claude.com/docs/en/checkpointing#not-a-replacement-for-version-control). Thresholds are our heuristic. |
 
 Values marked as heuristics are first guesses. Change them in the config file, and use `report` to check whether they help.
@@ -97,10 +99,12 @@ Create `~/.claude/coach/config.json` (on Windows, `%USERPROFILE%\.claude\coach\c
     "drift": { "enabled": false },
     "rate-limit": { "enterPercent": 90, "cooldownMin": 60 }
   },
-  "wrap": { "timeoutMs": 150 },
+  "wrap": { "enabled": true, "timeoutMs": 150 },
   "git": { "timeoutMs": 300, "cacheSeconds": 5 }
 }
 ```
+
+Set `"wrap": { "enabled": false }` to stop showing your previous status line. `uninstall` still restores it.
 
 If you raise only an `enter…` level, its `exit…` level moves with it, so the on/off gap keeps its shape.
 
@@ -115,6 +119,28 @@ If you raise only an `enter…` level, its `exit…` level moves with it, so the
 | `uncommitted` | `enterFiles` 10, `exitFiles` 8, `minTokens` 100000, `cooldownMin` 15 |
 
 Every detector also takes `"enabled": false`.
+
+## See why: `explain`
+
+```bash
+npx claude-coach explain [session-id]
+```
+
+Shows, for your latest session (or the one you name), what each rule saw on the last refresh, its trigger level, and what happened to it:
+
+```
+Session bba579c3-… · last refresh 14:05 · Sonnet 5 · 127k/1M
+
+ctx-pressure  127k tokens (13% of 1M)                 trigger ≥150k or ≥85%, off below 140k   → quiet
+ctx-spike     last prompt +12k tokens                 trigger ≥+40k in one prompt             → quiet
+cache-expiry  cache warm, 59m left, rebuild 127k      trigger ≤2m left & rebuild ≥20k          → quiet
+rate-limit    5h 2%, 7d 21%                           trigger ≥80%, off below 75%              → quiet
+read-heavy    15 reads/searches in your last prompt   trigger ≥15 & ≥60% reads & ≥40k ctx…    → SHOWN (tip)
+…
+Source for read-heavy: code.claude.com/docs/en/best-practices#use-subagents-for-investigation
+```
+
+Possible outcomes: `SHOWN`, `fired, outranked` (a more urgent advice won), `cooldown until HH:MM` (you acted on it recently), `quiet, waiting for turn end`, `quiet`, `disabled`. `explain` only reads; it never changes what the status line shows.
 
 ## Measure it: `report`
 

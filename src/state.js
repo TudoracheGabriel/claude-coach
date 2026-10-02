@@ -21,6 +21,24 @@ export function loadState(home, sessionId) {
   return fresh();
 }
 
+// Every saved session state, for `explain`. Unreadable files are skipped.
+export function listStates(home) {
+  let names = [];
+  try {
+    names = fs.readdirSync(sessionsDir(home)).filter((n) => n.endsWith('.json'));
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const name of names) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(sessionsDir(home), name), 'utf8'));
+      if (raw && raw.v === VERSION) out.push({ file: name.slice(0, -5), state: raw });
+    } catch {}
+  }
+  return out;
+}
+
 // Atomic: write a temp file then rename over the old one, so a cancelled run never leaves half a file.
 export function saveState(home, sessionId, state) {
   const dir = sessionsDir(home);

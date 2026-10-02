@@ -5,6 +5,7 @@ const DIM = '\x1b[2m';
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
+const CYAN = '\x1b[36m';
 
 export const FALLBACK = 'Coach: waiting for session data.';
 
@@ -51,9 +52,16 @@ export function renderHealthy(snap, columns) {
   return fit(`${GREEN}${text}${RESET}`, columns);
 }
 
+// Three levels: a calm tip (< 50), a warning (50-69) and urgent (>= 70).
+export const level = (urgency) => (urgency >= 70 ? 'urgent' : urgency >= 50 ? 'warn' : 'tip');
+
 export function renderAdvice(advice, snap, { now, columns }) {
-  const colour = advice.urgency >= 70 ? RED : YELLOW;
   const top = fit(`${DIM}${metrics(snap, now)}${RESET}`, columns);
-  const bottom = fit(`${colour}▲ ${advice.action}${RESET} — ${advice.reason}`, columns);
+  const head = {
+    tip: `${CYAN}Tip: ${advice.action}${RESET}`,
+    warn: `${YELLOW}▲ ${advice.action}${RESET}`,
+    urgent: `${RED}▲ ${advice.action}${RESET}`,
+  }[level(advice.urgency)];
+  const bottom = fit(`${head} — ${advice.reason}`, columns);
   return `${top}\n${bottom}`;
 }

@@ -23,7 +23,8 @@ export function command(promptId, name, extra = {}) {
   );
 }
 
-export function assistant(contextTokens, { tools = [], sidechain = false, text = 'ok', at = undefined, cacheWrite = 1000 } = {}) {
+// stop_reason defaults to what Claude Code records: 'tool_use' while working, 'end_turn' when done.
+export function assistant(contextTokens, { tools = [], sidechain = false, text = 'ok', at = undefined, cacheWrite = 1000, stop = undefined } = {}) {
   const content = tools.length
     ? tools.map(([name, input]) => ({ type: 'tool_use', id: `toolu_${uuid()}`, name, input }))
     : [{ type: 'text', text }];
@@ -35,6 +36,7 @@ export function assistant(contextTokens, { tools = [], sidechain = false, text =
       model: 'claude-opus-5-5',
       role: 'assistant',
       content,
+      stop_reason: stop ?? (tools.length ? 'tool_use' : 'end_turn'),
       usage: {
         input_tokens: 2,
         cache_creation_input_tokens: cacheWrite,

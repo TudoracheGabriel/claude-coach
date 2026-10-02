@@ -31,6 +31,14 @@ test('an unrelated task with heavy context suggests /clear', async () => {
   assert.match(lines(out)[1], /\/clear/);
 });
 
+test('no /clear advice while Claude is still working on the new prompt', async () => {
+  const home = tempHome();
+  const unfinished = turn('p4', 'Write a GitHub Actions workflow that publishes the docs site nightly', ['.github/workflows/docs.yml', 'docs/site/config.json'], 80_000).slice(0, -1);
+  const file = writeTranscript(home, [...history, ...unfinished]);
+  const out = strip(await coach(stdin({ tokens: 80_000, promptId: 'p4', transcriptPath: file, cwd: CWD }), { home }));
+  assert.doesNotMatch(out, /\/clear/);
+});
+
 test('a rephrased prompt on the same files and terms does not', async () => {
   const out = await latest('Coupon totals in checkout still look off, check rounding again', ['src/checkout/rounding.ts', 'src/checkout/total.ts'], 80_000);
   assert.doesNotMatch(out, /\/clear/);

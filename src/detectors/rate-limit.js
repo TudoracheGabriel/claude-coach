@@ -18,4 +18,12 @@ export const rateLimit = {
       reason: `${name} limit ${pct}% used${resets}.`,
     };
   },
+  source: 'code.claude.com/docs/en/statusline (rate_limits); 80% is a heuristic',
+  explain({ snap }, opts) {
+    const parts = [
+      snap.limits.fiveHour && `5h ${Math.round(snap.limits.fiveHour.usedPercentage)}%`,
+      snap.limits.sevenDay && `7d ${Math.round(snap.limits.sevenDay.usedPercentage)}%`,
+    ].filter(Boolean);
+    return { reading: parts.length ? parts.join(', ') : 'no limits reported', trigger: `≥${opts.enterPercent}%, off below ${opts.exitPercent}%` };
+  },
 };

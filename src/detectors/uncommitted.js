@@ -11,4 +11,11 @@ export const uncommitted = {
       reason: `${git.dirty} uncommitted files and ${fmt(snap.tokens)} tokens of context; a checkpoint makes the next big change safe to undo.`,
     };
   },
+  source: 'code.claude.com/docs/en/checkpointing#not-a-replacement-for-version-control; counts are heuristics',
+  explain({ git }, opts) {
+    return {
+      reading: git.dirty === null ? 'not checked (light context, or not a git repo)' : `${git.dirty} uncommitted files`,
+      trigger: `≥${opts.enterFiles} files & ≥${fmt(opts.minTokens)} ctx`,
+    };
+  },
 };

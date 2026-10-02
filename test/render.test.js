@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { coach, stdin, lines, strip } from './helpers.js';
+import { coach, stdin, lines, strip, NOW } from './helpers.js';
 
 const visible = (l) => [...strip(l)].length;
 
@@ -17,6 +17,14 @@ test('risk advice expands to a metrics line then advice with why', async () => {
 test('advice is coloured with ANSI', async () => {
   const out = await coach(stdin({ tokens: 165_000 }));
   assert.match(out, /\x1b\[/);
+});
+
+test('urgent advice is red, warnings are yellow', async () => {
+  const sec = (ms) => Math.floor(ms / 1000);
+  const urgent = await coach(stdin({ tokens: 60_000, extra: { prompt_cache: { warm: true, expires_at: sec(NOW + 30_000), recache_tokens_if_cold: 60_000 } } }), { now: NOW });
+  assert.match(urgent.split('\n')[1], /\x1b\[31m▲/);
+  const warn = await coach(stdin({ tokens: 155_000 }));
+  assert.match(warn.split('\n')[1], /\x1b\[33m▲/);
 });
 
 test('every line fits COLUMNS=60', async () => {

@@ -5,7 +5,8 @@ const MAX_PROMPTS = 30;
 const READ_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead']);
 
 export function emptyTranscript(path = null) {
-  return { path, offset: 0, current: null, compactions: 0, prompts: [] };
+  // turnEnded: null until a transcript says otherwise, so stdin-only runs keep working.
+  return { path, offset: 0, current: null, compactions: 0, prompts: [], turnEnded: null };
 }
 
 export function promptRecord(t, id) {
@@ -28,6 +29,7 @@ function apply(t, e) {
   if (e.type === 'user' && typeof e.promptId === 'string') {
     const p = promptRecord(t, e.promptId);
     t.current = e.promptId;
+    t.turnEnded = false;
     const text = e.isMeta || e.isCompactSummary ? null : promptText(e.message?.content);
     if (text) {
       const cmd = slashCommand(text);
@@ -41,6 +43,8 @@ function apply(t, e) {
     const p = promptRecord(t, t.current);
     const tokens = contextTokens(e.message?.usage);
     if (tokens) p.end = tokens;
+    // 'end_turn' means Claude finished and it is the user's move; 'tool_use' means still working.
+    if (typeof e.message?.stop_reason === 'string') t.turnEnded = e.message.stop_reason === 'end_turn';
     const content = Array.isArray(e.message?.content) ? e.message.content : [];
     for (const block of content) {
       if (block?.type !== 'tool_use') continue;

@@ -56,6 +56,17 @@ test('a slow previous command still shows its last finished output on later runs
   assert.match(lines(later)[0], /OLD-LINE session=s1/);
 });
 
+test('wrapping can be switched off in config while install keeps the old command for uninstall', async () => {
+  const home = await installedOver(oldCommand(), 5000);
+  fs.writeFileSync(path.join(home, '.claude', 'coach', 'config.json'), JSON.stringify({ wrap: { enabled: false, timeoutMs: 5000 } }));
+  const out = lines(await coach(stdin({ tokens: 20_000 }), { home }));
+  assert.equal(out.length, 1);
+  assert.match(out[0], /healthy/i);
+  await cli(['uninstall'], { home });
+  const settings = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'));
+  assert.equal(settings.statusLine.command, oldCommand());
+});
+
 test('a failing previous command is ignored', async () => {
   const home = await installedOver('definitely-not-a-real-command-xyz', 3000);
   const out = lines(await coach(stdin({ tokens: 20_000 }), { home }));

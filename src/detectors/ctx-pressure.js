@@ -21,4 +21,11 @@ export const ctxPressure = {
       reason: `${fmt(snap.tokens)} tokens in context; answers get less sharp in long contexts.`,
     };
   },
+  source: 'platform.claude.com/docs/en/build-with-claude/compaction-threshold (150k default)',
+  explain({ snap }, opts) {
+    return {
+      reading: snap.tokens === null ? 'no usage yet' : `${fmt(snap.tokens)} tokens (${Math.round(snap.percent)}% of ${fmt(snap.windowSize)})`,
+      trigger: `≥${fmt(opts.enterTokens)} or ≥${opts.enterPercent}%, off below ${fmt(opts.exitTokens)}`,
+    };
+  },
 };

@@ -1,5 +1,6 @@
 import { install, uninstall } from './cli/install.js';
 import { report } from './cli/report.js';
+import { explain } from './cli/explain.js';
 
 const USAGE = `Usage: claude-coach [command]
 
@@ -8,6 +9,8 @@ const USAGE = `Usage: claude-coach [command]
   uninstall      restore your previous settings
   report [--since YYYY-MM-DD] [--until YYYY-MM-DD]
                  local before/after metrics from your past sessions (default: last 14 days)
+  explain [session-id]
+                 why the latest (or named) session got its advice: each rule's reading, trigger and outcome
 `;
 
 // Seam B: argv + home in, exit code and text out.
@@ -21,6 +24,8 @@ export async function cli(argv, env) {
       return uninstall(env.home);
     case 'report':
       return report(env.home, argv.slice(1), env.now ?? Date.now());
+    case 'explain':
+      return explain(env.home, argv.slice(1), env.now ?? Date.now());
     case 'help':
     case '--help':
     case '-h':
