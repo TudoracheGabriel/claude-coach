@@ -7,9 +7,10 @@ import { ctxPressure } from './detectors/ctx-pressure.js';
 import { ctxSpike } from './detectors/ctx-spike.js';
 import { cacheExpiry } from './detectors/cache-expiry.js';
 import { rateLimit } from './detectors/rate-limit.js';
+import { readHeavy } from './detectors/read-heavy.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
-const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit];
+const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy];
 
 function parse(stdinText) {
   try {

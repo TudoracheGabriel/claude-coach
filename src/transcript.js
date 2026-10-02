@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 const MAX_PROMPTS = 30;
+const READ_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead']);
 
 export function emptyTranscript(path = null) {
   return { path, offset: 0, current: null, compactions: 0, prompts: [] };
@@ -9,7 +10,7 @@ export function emptyTranscript(path = null) {
 export function promptRecord(t, id) {
   let p = t.prompts.find((x) => x.id === id);
   if (!p) {
-    p = { id, end: null };
+    p = { id, end: null, reads: 0, others: 0 };
     t.prompts.push(p);
     if (t.prompts.length > MAX_PROMPTS) t.prompts.splice(0, t.prompts.length - MAX_PROMPTS);
   }
@@ -27,8 +28,15 @@ function apply(t, e) {
     promptRecord(t, e.promptId);
     t.current = e.promptId;
   } else if (e.type === 'assistant' && t.current) {
+    const p = promptRecord(t, t.current);
     const tokens = contextTokens(e.message?.usage);
-    if (tokens) promptRecord(t, t.current).end = tokens;
+    if (tokens) p.end = tokens;
+    const content = Array.isArray(e.message?.content) ? e.message.content : [];
+    for (const block of content) {
+      if (block?.type !== 'tool_use') continue;
+      if (READ_TOOLS.has(block.name)) p.reads++;
+      else p.others++;
+    }
   } else if (e.type === 'system' && e.subtype === 'compact_boundary') {
     t.compactions++;
   }
