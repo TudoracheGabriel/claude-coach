@@ -9,8 +9,7 @@
   "files": [
     "bin/",
     "src/",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
   "engines": {
     "node": ">=18"
@@ -21,12 +20,19 @@
   },
   "keywords": [
     "claude-code",
+    "claude",
     "statusline",
-    "status-line"
+    "status-line",
+    "context",
+    "coach"
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "devDependencies": {
     "@types/node": "^18.19.130",
     "typescript": "^5.9.3"
+  },
+  "author": "Gabriel Tudorache",
+  "publishConfig": {
+    "access": "restricted"
   }
 }
