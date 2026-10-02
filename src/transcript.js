@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { promptText, slashCommand, keywords, pathsInText, addFiles, toolPaths } from './features.js';
 
 const MAX_PROMPTS = 30;
 const READ_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead']);
@@ -25,8 +26,17 @@ const contextTokens = (u) =>
 function apply(t, e) {
   if (!e || typeof e !== 'object' || e.isSidechain) return;
   if (e.type === 'user' && typeof e.promptId === 'string') {
-    promptRecord(t, e.promptId);
+    const p = promptRecord(t, e.promptId);
     t.current = e.promptId;
+    const text = e.isMeta || e.isCompactSummary ? null : promptText(e.message?.content);
+    if (text) {
+      const cmd = slashCommand(text);
+      if (cmd) p.cmd = cmd;
+      else {
+        p.kw = [...new Set([...(p.kw ?? []), ...keywords(text)])];
+        addFiles(p, pathsInText(text, e.cwd));
+      }
+    }
   } else if (e.type === 'assistant' && t.current) {
     const p = promptRecord(t, t.current);
     const tokens = contextTokens(e.message?.usage);
@@ -36,6 +46,7 @@ function apply(t, e) {
       if (block?.type !== 'tool_use') continue;
       if (READ_TOOLS.has(block.name)) p.reads++;
       else p.others++;
+      addFiles(p, toolPaths(block.input, e.cwd));
     }
   } else if (e.type === 'system' && e.subtype === 'compact_boundary') {
     t.compactions++;
