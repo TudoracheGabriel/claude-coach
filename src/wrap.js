@@ -92,7 +92,11 @@ function foreground(command, stdinText, timeoutMs) {
       }
     };
     try {
-      const child = spawn(command, { shell: true, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
+      // Without Git Bash, Claude Code runs status line commands through PowerShell on Windows.
+      const child =
+        process.platform === 'win32'
+          ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] })
+          : spawn(command, { shell: true, stdio: ['pipe', 'pipe', 'ignore'] });
       const timer = setTimeout(() => {
         child.kill();
         finish(null);

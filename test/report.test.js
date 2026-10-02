@@ -70,6 +70,16 @@ test('report without --since covers the last 14 days', async () => {
   assert.match(r.output, /1 session\b/);
 });
 
+test('--until includes sessions on that day', async () => {
+  const home = tempHome();
+  await sessionB(home);
+  const d = new Date(NOW - 24 * 60 * 60 * 1000);
+  const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const r = await cli(['report', '--since', local, '--until', local], { home, now: NOW });
+  assert.match(r.output, /1 session\b/);
+  assert.match(r.output, new RegExp(`${local} to ${local}`));
+});
+
 test('report with no transcripts in range says there is no data', async () => {
   const home = tempHome();
   sessionC(home);

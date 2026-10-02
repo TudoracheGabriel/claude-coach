@@ -139,11 +139,12 @@ export function report(home, argv, now) {
     opts[key] = value;
   }
   const since = opts.since ?? now - 14 * DAY;
-  const until = opts.until ?? now + DAY;
+  // --until names the last day included.
+  const until = opts.until === null ? now + DAY : opts.until + DAY;
 
   const all = transcriptFiles(home).map(summarize).filter(Boolean);
   const sessions = all.filter((s) => s.first >= since && s.first < until);
-  const range = `${day(since)} to ${day(Math.min(until, now))}`;
+  const range = `${day(since)} to ${day(Math.min(until - 1, now))}`;
   if (!sessions.length) return { code: 0, output: `No sessions found in ~/.claude/projects from ${range}.` };
 
   const byId = new Map(all.map((s) => [s.id, s]));

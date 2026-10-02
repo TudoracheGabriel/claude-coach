@@ -39,19 +39,20 @@ export function saveState(home, sessionId, state) {
 export function collectGarbage(home, sessionId, state, now) {
   if (!state.isNew && now - state.lastGcAt < GC_EVERY_MS) return;
   state.lastGcAt = now;
-  const dir = sessionsDir(home);
-  let names;
-  try {
-    names = fs.readdirSync(dir);
-  } catch {
-    return;
-  }
-  const own = `${safeName(sessionId)}.json`;
-  for (const name of names) {
-    if (name === own) continue;
-    const file = path.join(dir, name);
+  const own = safeName(sessionId);
+  for (const dir of [sessionsDir(home), path.join(coachDir(home), 'wrap')]) {
+    let names;
     try {
-      if (now - fs.statSync(file).mtimeMs > MAX_AGE_MS) fs.rmSync(file, { force: true });
-    } catch {}
+      names = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (name.startsWith(`${own}.`)) continue;
+      const file = path.join(dir, name);
+      try {
+        if (now - fs.statSync(file).mtimeMs > MAX_AGE_MS) fs.rmSync(file, { force: true });
+      } catch {}
+    }
   }
 }

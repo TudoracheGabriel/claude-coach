@@ -33,10 +33,15 @@ async function statusLine() {
 }
 
 async function command(argv) {
-  const { cli } = await import('../src/cli.js');
-  const { code, output } = await cli(argv, { home: os.homedir(), now: Date.now() });
-  process.stdout.write(output.endsWith('\n') ? output : output + '\n');
-  process.exitCode = code;
+  try {
+    const { cli } = await import('../src/cli.js');
+    const { code, output } = await cli(argv, { home: os.homedir(), now: Date.now() });
+    process.stdout.write(output.endsWith('\n') ? output : output + '\n');
+    process.exitCode = code;
+  } catch (e) {
+    process.stderr.write(`claude-coach ${argv[0]} failed: ${e instanceof Error ? e.message : e}\n`);
+    process.exitCode = 1;
+  }
 }
 
 const argv = process.argv.slice(2);
