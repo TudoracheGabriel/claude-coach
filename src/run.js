@@ -13,6 +13,7 @@ import { uncommitted } from './detectors/uncommitted.js';
 import { gitDirty } from './git.js';
 import { wrapped } from './wrap.js';
 import { readInstall } from './cli/install.js';
+import { logAdvice } from './advice-log.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
 const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift, uncommitted];
@@ -59,6 +60,12 @@ export async function run(stdinText, env) {
 
   const ctx = { snap, now, home, state, transcript, git };
   const advice = rank(DETECTORS, ctx, state, config);
+  const shownId = advice?.id ?? null;
+  if (shownId && shownId !== state.lastShown) {
+    const deadline = shownId === 'cache-expiry' ? snap.cache?.expiresAt ?? null : null;
+    logAdvice(home, { at: now, session: snap.sessionId, advice: shownId, promptId, ...(deadline && { deadline }) });
+  }
+  state.lastShown = shownId;
   try {
     collectGarbage(home, snap.sessionId, state, now);
     saveState(home, snap.sessionId, state);

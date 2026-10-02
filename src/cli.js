@@ -1,10 +1,13 @@
 import { install, uninstall } from './cli/install.js';
+import { report } from './cli/report.js';
 
 const USAGE = `Usage: claude-coach [command]
 
   (no command)   status line mode: reads Claude Code session JSON on stdin
   install        set claude-coach as your Claude Code status line (keeps your old one)
   uninstall      restore your previous settings
+  report [--since YYYY-MM-DD] [--until YYYY-MM-DD]
+                 local before/after metrics from your past sessions (default: last 14 days)
 `;
 
 // Seam B: argv + home in, exit code and text out.
@@ -16,6 +19,8 @@ export async function cli(argv, env) {
       return install(env.home);
     case 'uninstall':
       return uninstall(env.home);
+    case 'report':
+      return report(env.home, argv.slice(1), env.now ?? Date.now());
     case 'help':
     case '--help':
     case '-h':

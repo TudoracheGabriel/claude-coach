@@ -10,7 +10,7 @@ const sessionsDir = (home) => path.join(coachDir(home), 'sessions');
 const safeName = (id) => id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120);
 
 export function fresh() {
-  return { v: VERSION, isNew: true, lastGcAt: 0, firing: [], shownInEpisode: [], clearedAt: {} };
+  return { v: VERSION, isNew: true, lastGcAt: 0, firing: [], shownInEpisode: [], clearedAt: {}, lastShown: null };
 }
 
 export function loadState(home, sessionId) {
