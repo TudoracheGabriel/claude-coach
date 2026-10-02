@@ -14,6 +14,7 @@ import { gitDirty } from './git.js';
 import { wrapped } from './wrap.js';
 import { readInstall } from './cli/install.js';
 import { logAdvice } from './advice-log.js';
+import { capture } from './capture.js';
 import { renderAdvice, renderHealthy, FALLBACK } from './render.js';
 
 const DETECTORS = [ctxPressure, ctxSpike, cacheExpiry, rateLimit, readHeavy, drift, uncommitted];
@@ -36,9 +37,9 @@ function safeReadTranscript(path, previous) {
 }
 
 // Seam A: stdin text + environment in, status line text out. Never throws.
-/** @param {string} stdinText @param {{ home: string, now?: number, columns?: number }} env */
+/** @param {string} stdinText @param {{ home: string, now?: number, columns?: number, capture?: boolean }} env */
 export async function run(stdinText, env) {
-  const { home, now = Date.now(), columns = 120 } = env;
+  const { home, now = Date.now(), columns = 120, capture: capturing = false } = env;
   const input = parse(stdinText);
   if (!input) return FALLBACK;
   const snap = normalize(input);
@@ -66,6 +67,9 @@ export async function run(stdinText, env) {
     logAdvice(home, { at: now, session: snap.sessionId, advice: shownId, promptId, ...(deadline && { deadline }) });
   }
   state.lastShown = shownId;
+  try {
+    if (capturing || config.capture) capture(home, stdinText, snap, state, now);
+  } catch {}
   try {
     collectGarbage(home, snap.sessionId, state, now);
     saveState(home, snap.sessionId, state);

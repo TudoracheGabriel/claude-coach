@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import os from 'node:os';
-import { run } from '../src/run.js';
 import { FALLBACK } from '../src/render.js';
 
 function readStdin() {
@@ -15,14 +14,16 @@ function readStdin() {
 }
 
 // Status line mode must never fail: any error becomes the fallback line and exit code 0.
+// Loading the modules overlaps with reading stdin.
 async function statusLine() {
   let out = FALLBACK;
   try {
-    const input = await readStdin();
+    const [{ run }, input] = await Promise.all([import('../src/run.js'), readStdin()]);
     out = await run(input, {
       home: os.homedir(),
       now: Date.now(),
       columns: Number(process.env.COLUMNS) || 120,
+      capture: process.env.CLAUDE_COACH_CAPTURE === '1',
     });
   } catch {
     out = FALLBACK;

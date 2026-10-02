@@ -10,4 +10,5 @@ export const DEFAULTS = {
   },
   git: { timeoutMs: 300, cacheSeconds: 5 },
   wrap: { timeoutMs: 150 },
+  capture: false,
 };
