@@ -25,5 +25,5 @@ export async function run(stdinText, env) {
     if (p) proposals.push({ id: d.id, ...p });
   }
   proposals.sort((a, b) => b.urgency - a.urgency);
-  return proposals.length ? renderAdvice(proposals[0]) : renderHealthy(snap);
+  return proposals.length ? renderAdvice(proposals[0], snap, { now, columns }) : renderHealthy(snap, columns);
 }
