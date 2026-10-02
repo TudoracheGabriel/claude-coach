@@ -14,6 +14,7 @@ function readStdin() {
   });
 }
 
+// Status line mode must never fail: any error becomes the fallback line and exit code 0.
 async function statusLine() {
   let out = FALLBACK;
   try {
@@ -27,8 +28,16 @@ async function statusLine() {
     out = FALLBACK;
   }
   process.stdout.write(out + '\n');
+  process.exitCode = 0;
 }
 
-statusLine().finally(() => {
-  process.exitCode = 0;
-});
+async function command(argv) {
+  const { cli } = await import('../src/cli.js');
+  const { code, output } = await cli(argv, { home: os.homedir(), now: Date.now() });
+  process.stdout.write(output.endsWith('\n') ? output : output + '\n');
+  process.exitCode = code;
+}
+
+const argv = process.argv.slice(2);
+if (argv.length) command(argv);
+else statusLine();
