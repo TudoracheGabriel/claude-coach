@@ -27,7 +27,7 @@ Checked against the Claude Code status line docs (code.claude.com/docs/en/status
 3. Scrubbing: every string is replaced by `[scrubbed N chars]` unless it sits under a structural key (ids, timestamps, tool names, model, file paths). Prose-like object keys are replaced too. The home folder and account name are replaced in paths.
 4. Review the files, then copy them into `test/fixtures/captured/`. `test/capture.test.js` replays every pair found there, at 200 and at 60 columns.
 
-Still to do: capture on Windows and on macOS and check the captures in. This was not done in this session. The auto-mode classifier refused to copy a real local transcript into the repo, even scrubbed, so this step is left to the owner.
+Still to do: capture real scrubbed transcripts on Windows and macOS and check them into `test/fixtures/captured/`. Not done yet — tests currently run against synthetic fixtures only.
 
 ## Node cold start (Windows 11, Node 22.13, `node scripts/cold-start.js 30`)
 

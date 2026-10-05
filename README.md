@@ -39,19 +39,13 @@ Values marked as heuristics are first guesses. Change them in the config file, a
 
 You need Node.js 18 or newer. Claude Code must already be installed.
 
-**macOS / Linux**
-
 ```bash
-npx claude-coach install
+npx github:TudoracheGabriel/claude-coach install
 ```
 
-**Windows** (PowerShell or Git Bash)
+Verified on Windows; should work the same on macOS/Linux (same Node APIs, no platform-specific code) but that hasn't been checked on a real machine yet. This isn't published to npm — `npx` fetches it straight from this GitHub repo.
 
-```bash
-npx claude-coach install
-```
-
-Until the package is published, run the same commands from a checkout instead:
+From a local checkout instead:
 
 ```bash
 node bin/claude-coach.js install
@@ -83,7 +77,7 @@ On Windows, write the path with forward slashes (`C:/Users/you/...`).
 ## Uninstall
 
 ```bash
-npx claude-coach uninstall
+npx github:TudoracheGabriel/claude-coach uninstall
 ```
 
 If you haven't changed `settings.json` since install, it is restored byte for byte. If you have, only the status line is put back and your other changes are kept. Uninstall removes the app copy and the session state. Your `config.json` and the advice log stay, so `report` keeps working.
@@ -123,7 +117,7 @@ Every detector also takes `"enabled": false`.
 ## See why: `explain`
 
 ```bash
-npx claude-coach explain [session-id]
+npx github:TudoracheGabriel/claude-coach explain [session-id]
 ```
 
 Shows, for your latest session (or the one you name), what each rule saw on the last refresh, its trigger level, and what happened to it:
@@ -145,7 +139,7 @@ Possible outcomes: `SHOWN`, `fired, outranked` (a more urgent advice won), `cool
 ## Measure it: `report`
 
 ```bash
-npx claude-coach report --since 2026-09-01 [--until 2026-09-15]
+npx github:TudoracheGabriel/claude-coach report --since 2026-09-01 [--until 2026-09-15]
 ```
 
 `report` reads your local transcripts in `~/.claude/projects/` (default: the last 14 days) and prints:
@@ -199,12 +193,6 @@ node scripts/cold-start.js   # measure process start-up time on this machine
 
 To add a recommendation, add a file in `src/detectors/`, its defaults in `src/defaults.js`, and a Seam A test.
 
-## Releasing
+## License
 
-The package is marked `"publishConfig": { "access": "restricted" }`, so `npm publish` refuses to publish it publicly by accident. To release:
-
-1. Pick the final name.
-2. Rename it to a scope (`@scope/claude-coach`) for a private publish.
-3. Settle the license, then publish.
-
-`npm pack --dry-run` lists exactly what ships: `bin/`, `src/`, `README.md`, `package.json`.
+Source is public for transparency and so `npx github:TudoracheGabriel/claude-coach` works, but no license is granted — all rights reserved. See [LICENSE](LICENSE).
